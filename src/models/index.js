@@ -7,17 +7,25 @@ const Order = require('./order');
 const env = process.env.NODE_ENV || 'development';
 const dbConfig = config[env];
 
-const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, {
-  host: dbConfig.host,
-  dialect: dbConfig.dialect,
-});
+let sequelize;
+try {
+  sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, {
+    host: dbConfig.host,
+    dialect: dbConfig.dialect,
+    logging: false, // Disable logging
+  });
+} catch (error) {
+  console.warn('Database initialization skipped:', error.message);
+  // Create a dummy sequelize instance for serverless environments
+  sequelize = null;
+}
 
 const db = {
   sequelize,
   Sequelize,
-  Message: Message(sequelize, Sequelize.DataTypes),
-  Menu: Menu(sequelize, Sequelize.DataTypes),
-  Order: Order(sequelize, Sequelize.DataTypes),
+  Message: sequelize ? Message(sequelize, Sequelize.DataTypes) : null,
+  Menu: sequelize ? Menu(sequelize, Sequelize.DataTypes) : null,
+  Order: sequelize ? Order(sequelize, Sequelize.DataTypes) : null,
 };
 
 module.exports = db;

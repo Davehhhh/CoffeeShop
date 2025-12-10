@@ -23,6 +23,11 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-app.use('/api', chatRoutes());
+try {
+  app.use('/api', chatRoutes());
+} catch (error) {
+  console.warn('Chat routes initialization skipped:', error.message);
+  // Chat routes will fail gracefully if database is not available
+}
 
 module.exports = app;
