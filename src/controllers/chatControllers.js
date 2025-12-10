@@ -86,6 +86,19 @@ class CoffeeshopController {
             const menuItems = await db.Menu.findAll({
                 where: { available: true },
             });
+            // If DB returned empty, try static fallback
+            if (!menuItems || (Array.isArray(menuItems) && menuItems.length === 0)) {
+                try {
+                    const fallbackPath = require('path').join(__dirname, '../public/data/menu.json');
+                    if (require('fs').existsSync(fallbackPath)) {
+                        const raw = require('fs').readFileSync(fallbackPath, 'utf8');
+                        const data = JSON.parse(raw);
+                        return res.json(data.filter(i => i.available));
+                    }
+                } catch (fallbackErr) {
+                    console.warn('Failed to load fallback menu:', fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr);
+                }
+            }
             res.json(menuItems);
         } catch (error) {
             console.error('getMenu error:', error && error.message ? error.message : error);
@@ -105,6 +118,20 @@ class CoffeeshopController {
                 order: [['salesCount', 'DESC']],
                 limit: parseInt(limit),
             });
+            // If DB returned empty, try static fallback
+            if (!bestsellers || (Array.isArray(bestsellers) && bestsellers.length === 0)) {
+                try {
+                    const fallbackPath = require('path').join(__dirname, '../public/data/menu.json');
+                    if (require('fs').existsSync(fallbackPath)) {
+                        const raw = require('fs').readFileSync(fallbackPath, 'utf8');
+                        const data = JSON.parse(raw);
+                        const sellers = data.filter(i => i.available && i.isBestseller).sort((a,b) => (b.salesCount||0)-(a.salesCount||0)).slice(0, parseInt(limit));
+                        return res.json(sellers);
+                    }
+                } catch (fallbackErr) {
+                    console.warn('Failed to load fallback bestsellers:', fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr);
+                }
+            }
             res.json(bestsellers);
         } catch (error) {
             console.error('getBestsellers error:', error && error.message ? error.message : error);

@@ -1,0 +1,68 @@
+[
+  {
+    "id": 50,
+    "name": "Cappuccino",
+    "description": "Espresso with steamed milk and foam",
+    "category": "Coffee",
+    "price": "180.00",
+    "available": true,
+    "isBestseller": true,
+    "salesCount": 350,
+    "rating": "4.80"
+  },
+  {
+    "id": 51,
+    "name": "Latte",
+    "description": "Espresso with steamed milk",
+    "category": "Coffee",
+    "price": "200.00",
+    "available": true,
+    "isBestseller": true,
+    "salesCount": 320,
+    "rating": "4.70"
+  },
+  {
+    "id": 53,
+    "name": "Mocha",
+    "description": "Espresso with steamed milk and chocolate",
+    "category": "Coffee",
+    "price": "220.00",
+    "available": true,
+    "isBestseller": true,
+    "salesCount": 280,
+    "rating": "4.90"
+  },
+  {
+    "id": 56,
+    "name": "Croissant",
+    "description": "Buttery French pastry",
+    "category": "Pastry",
+    "price": "160.00",
+    "available": true,
+    "isBestseller": true,
+    "salesCount": 250,
+    "rating": "4.60"
+  },
+  {
+    "id": 59,
+    "name": "Chocolate Cake",
+    "description": "Rich chocolate cake slice",
+    "category": "Dessert",
+    "price": "250.00",
+    "available": true,
+    "isBestseller": true,
+    "salesCount": 220,
+    "rating": "4.80"
+  },
+  {
+    "id": 60,
+    "name": "Iced Coffee",
+    "description": "Cold brew coffee with ice",
+    "category": "Beverage",
+    "price": "180.00",
+    "available": true,
+    "isBestseller": true,
+    "salesCount": 260,
+    "rating": "4.70"
+  }
+]
