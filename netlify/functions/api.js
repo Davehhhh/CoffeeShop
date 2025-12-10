@@ -1,13 +1,9 @@
 // Netlify serverless function wrapper for Express app
+const serverless = require('serverless-http');
 const app = require('../../src/app');
 
+const handler = serverless(app);
+
 exports.handler = async (event, context) => {
-  const response = await new Promise((resolve, reject) => {
-    app(event, context, (err, res) => {
-      if (err) return reject(err);
-      resolve(res);
-    });
-  });
-  
-  return response;
+  return handler(event, context);
 };
