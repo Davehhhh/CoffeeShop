@@ -1,0 +1,24 @@
+{
+  "name": "chatbot-js-sequelize",
+  "version": "1.0.0",
+  "description": "A chatbot application using JavaScript and Sequelize for database management.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "migrate": "sequelize db:migrate",
+    "seed": "sequelize db:seed:all"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "sequelize": "^6.6.5",
+    "mysql2": "^2.2.5",
+    "dotenv": "^10.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7",
+    "sequelize-cli": "^6.2.0"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
