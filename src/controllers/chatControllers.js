@@ -86,17 +86,13 @@ class CoffeeshopController {
             const menuItems = await db.Menu.findAll({
                 where: { available: true },
             });
-            // If DB returned empty, try static fallback
+            // If DB returned empty, use internal static fallback bundled with the function
             if (!menuItems || (Array.isArray(menuItems) && menuItems.length === 0)) {
                 try {
-                    const fallbackPath = require('path').join(__dirname, '../public/data/menu.json');
-                    if (require('fs').existsSync(fallbackPath)) {
-                        const raw = require('fs').readFileSync(fallbackPath, 'utf8');
-                        const data = JSON.parse(raw);
-                        return res.json(data.filter(i => i.available));
-                    }
+                    const data = require('../data/menu.json');
+                    return res.json(Array.isArray(data) ? data.filter(i => i.available) : []);
                 } catch (fallbackErr) {
-                    console.warn('Failed to load fallback menu:', fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr);
+                    console.warn('Failed to load internal fallback menu:', fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr);
                 }
             }
             res.json(menuItems);
@@ -118,18 +114,16 @@ class CoffeeshopController {
                 order: [['salesCount', 'DESC']],
                 limit: parseInt(limit),
             });
-            // If DB returned empty, try static fallback
+            // If DB returned empty, use internal static fallback bundled with the function
             if (!bestsellers || (Array.isArray(bestsellers) && bestsellers.length === 0)) {
                 try {
-                    const fallbackPath = require('path').join(__dirname, '../public/data/menu.json');
-                    if (require('fs').existsSync(fallbackPath)) {
-                        const raw = require('fs').readFileSync(fallbackPath, 'utf8');
-                        const data = JSON.parse(raw);
+                    const data = require('../data/menu.json');
+                    if (Array.isArray(data)) {
                         const sellers = data.filter(i => i.available && i.isBestseller).sort((a,b) => (b.salesCount||0)-(a.salesCount||0)).slice(0, parseInt(limit));
                         return res.json(sellers);
                     }
                 } catch (fallbackErr) {
-                    console.warn('Failed to load fallback bestsellers:', fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr);
+                    console.warn('Failed to load internal fallback bestsellers:', fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr);
                 }
             }
             res.json(bestsellers);
