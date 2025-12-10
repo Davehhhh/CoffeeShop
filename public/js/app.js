@@ -3,7 +3,8 @@ let menuItems = [];
 let cart = [];
 let currentFilter = 'all';
 
-const API_BASE = 'http://localhost:3000/api';
+// Use relative API base so requests work both locally and on Netlify
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api';
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
