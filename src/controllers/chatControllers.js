@@ -78,7 +78,9 @@ class CoffeeshopController {
             });
             res.json(menuItems);
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            console.error('getMenu error:', error && error.message ? error.message : error);
+            // Return empty list so frontend doesn't break when DB is unavailable
+            res.json([]);
         }
     }
 
@@ -95,7 +97,9 @@ class CoffeeshopController {
             });
             res.json(bestsellers);
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            console.error('getBestsellers error:', error && error.message ? error.message : error);
+            // Return empty list on error to keep UI usable
+            res.json([]);
         }
     }
 
