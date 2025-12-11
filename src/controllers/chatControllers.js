@@ -1,8 +1,27 @@
 const db = require('../models');
 const firebaseClient = require('../services/firebaseClient');
 const ChatbotService = require('../services/chatbot');
+const path = require('path');
+const fs = require('fs');
 
 const chatbotService = new ChatbotService(db);
+
+// Load bundled menu at startup for reliable fallback in serverless
+let bundledMenu = [];
+try {
+    const menuPath = path.join(__dirname, '../data/menu.json');
+    const menuContent = fs.readFileSync(menuPath, 'utf8');
+    bundledMenu = JSON.parse(menuContent);
+    console.log('Loaded bundled menu with', bundledMenu.length, 'items');
+} catch (err) {
+    console.warn('Failed to load bundled menu at startup:', err.message);
+    // Fallback: minimal sample menu
+    bundledMenu = [
+        { id: 1, name: 'Espresso', price: '150.00', available: true, isBestseller: true, salesCount: 450 },
+        { id: 2, name: 'Cappuccino', price: '180.00', available: true, isBestseller: true, salesCount: 350 },
+        { id: 3, name: 'Latte', price: '200.00', available: true, isBestseller: true, salesCount: 320 },
+    ];
+}
 
 class CoffeeshopController {
     // Chat message operations
@@ -112,16 +131,10 @@ class CoffeeshopController {
                 console.warn('MySQL menu query failed:', dbErr && dbErr.message ? dbErr.message : dbErr);
             }
 
-            // Fallback to bundled sample menu
-            try {
-                const data = require('../data/menu.json');
-                const filtered = Array.isArray(data) ? data.filter(i => i.available !== false) : [];
-                console.log('Served', filtered.length, 'menu items from bundled JSON');
-                return res.json(filtered);
-            } catch (fallbackErr) {
-                console.warn('Failed to load bundled menu:', fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr);
-                return res.json([]);
-            }
+            // Fallback to pre-loaded bundled menu (loaded at startup)
+            const filtered = bundledMenu.filter(i => i.available !== false);
+            console.log('Served', filtered.length, 'menu items from bundled cache');
+            return res.json(filtered);
         } catch (error) {
             console.error('getMenu error:', error && error.message ? error.message : error);
             res.json([]);
@@ -161,22 +174,13 @@ class CoffeeshopController {
                 console.warn('MySQL bestsellers query failed:', dbErr && dbErr.message ? dbErr.message : dbErr);
             }
 
-            // Fallback to bundled sample bestsellers
-            try {
-                const data = require('../data/menu.json');
-                if (Array.isArray(data)) {
-                    const sellers = data
-                        .filter(i => i.available !== false && i.isBestseller)
-                        .sort((a,b) => (b.salesCount||0)-(a.salesCount||0))
-                        .slice(0, parseInt(limit));
-                    console.log('Served', sellers.length, 'bestsellers from bundled JSON');
-                    return res.json(sellers);
-                }
-            } catch (fallbackErr) {
-                console.warn('Failed to load bundled bestsellers:', fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr);
-            }
-
-            return res.json([]);
+            // Fallback to pre-loaded bundled bestsellers
+            const sellers = bundledMenu
+                .filter(i => i.available !== false && i.isBestseller)
+                .sort((a,b) => (b.salesCount||0)-(a.salesCount||0))
+                .slice(0, parseInt(limit));
+            console.log('Served', sellers.length, 'bestsellers from bundled cache');
+            return res.json(sellers);
         } catch (error) {
             console.error('getBestsellers error:', error && error.message ? error.message : error);
             res.json([]);
