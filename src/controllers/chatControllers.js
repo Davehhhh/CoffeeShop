@@ -317,7 +317,6 @@ class CoffeeshopController {
             res.json(sellers);
         }
     }
-    }
 
     async addMenuItem(req, res) {
         try {
