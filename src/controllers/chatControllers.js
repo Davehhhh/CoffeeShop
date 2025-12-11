@@ -88,14 +88,19 @@ class CoffeeshopController {
     // Menu operations
     async getMenu(req, res) {
         try {
+            console.log('getMenu called. USE_FIREBASE:', process.env.USE_FIREBASE, 'NETLIFY:', process.env.NETLIFY);
+            
             // If Firebase is enabled, return Firebase menu
             if (process.env.USE_FIREBASE === 'true') {
+                console.log('Attempting Firebase getMenuItems...');
                 const fbItems = await firebaseClient.getMenuItems();
+                console.log('Firebase returned', fbItems ? fbItems.length : 0, 'items');
                 if (fbItems && fbItems.length > 0) return res.json(fbItems);
             }
             // If running on Netlify without DB, prefer bundled sample
             if (process.env.NETLIFY) {
                 try {
+                    console.log('Loading bundled sample menu for Netlify...');
                     const data = require('../data/menu.json');
                     return res.json(Array.isArray(data) ? data.filter(i => i.available) : []);
                 } catch (e) {
