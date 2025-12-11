@@ -226,16 +226,20 @@ class CoffeeshopController {
         try {
             // If Firebase is enabled, try it first
             if (process.env.USE_FIREBASE === 'true') {
-                const fbItems = await firebaseClient.getMenuItems();
-                if (fbItems && fbItems.length > 0) {
-                    console.log('Served', fbItems.length, 'menu items from Firestore');
-                    return res.json(fbItems);
+                try {
+                    const fbItems = await firebaseClient.getMenuItems();
+                    if (fbItems && fbItems.length > 0) {
+                        console.log('Served', fbItems.length, 'menu items from Firestore');
+                        return res.json(fbItems);
+                    }
+                } catch (fbErr) {
+                    console.warn('Firebase menu retrieval failed:', fbErr.message);
                 }
             }
 
             // Try MySQL database
-            try {
-                if (db && db.Menu && typeof db.Menu.findAll === 'function') {
+            if (db && db.Menu && typeof db.Menu.findAll === 'function') {
+                try {
                     const menuItems = await db.Menu.findAll({
                         where: { available: true },
                     });
@@ -243,18 +247,19 @@ class CoffeeshopController {
                         console.log('Served', menuItems.length, 'menu items from MySQL');
                         return res.json(menuItems);
                     }
+                } catch (dbErr) {
+                    console.warn('MySQL menu query failed:', dbErr.message);
                 }
-            } catch (dbErr) {
-                console.warn('MySQL menu query failed:', dbErr && dbErr.message ? dbErr.message : dbErr);
             }
 
-            // Fallback to pre-loaded bundled menu (loaded at startup)
+            // Fallback to embedded bundled menu
             const filtered = bundledMenu.filter(i => i.available !== false);
-            console.log('Served', filtered.length, 'menu items from bundled cache');
-            return res.json(filtered);
+            console.log('Serving', filtered.length, 'menu items from embedded data');
+            res.json(filtered);
         } catch (error) {
             console.error('getMenu error:', error && error.message ? error.message : error);
-            res.json([]);
+            // Last resort: return empty embedded array
+            res.json(bundledMenu.filter(i => i.available !== false));
         }
     }
 
@@ -264,16 +269,20 @@ class CoffeeshopController {
 
             // If Firebase is enabled, try it first
             if (process.env.USE_FIREBASE === 'true') {
-                const fbSellers = await firebaseClient.getBestsellers(limit);
-                if (fbSellers && fbSellers.length > 0) {
-                    console.log('Served', fbSellers.length, 'bestsellers from Firestore');
-                    return res.json(fbSellers);
+                try {
+                    const fbSellers = await firebaseClient.getBestsellers(limit);
+                    if (fbSellers && fbSellers.length > 0) {
+                        console.log('Served', fbSellers.length, 'bestsellers from Firestore');
+                        return res.json(fbSellers);
+                    }
+                } catch (fbErr) {
+                    console.warn('Firebase bestsellers retrieval failed:', fbErr.message);
                 }
             }
 
             // Try MySQL database
-            try {
-                if (db && db.Menu && typeof db.Menu.findAll === 'function') {
+            if (db && db.Menu && typeof db.Menu.findAll === 'function') {
+                try {
                     const bestsellers = await db.Menu.findAll({
                         where: { 
                             available: true,
@@ -286,21 +295,26 @@ class CoffeeshopController {
                         console.log('Served', bestsellers.length, 'bestsellers from MySQL');
                         return res.json(bestsellers);
                     }
+                } catch (dbErr) {
+                    console.warn('MySQL bestsellers query failed:', dbErr.message);
                 }
-            } catch (dbErr) {
-                console.warn('MySQL bestsellers query failed:', dbErr && dbErr.message ? dbErr.message : dbErr);
             }
 
-            // Fallback to pre-loaded bundled bestsellers
+            // Fallback to embedded bundled bestsellers
             const sellers = bundledMenu
                 .filter(i => i.available !== false && i.isBestseller)
                 .sort((a,b) => (b.salesCount||0)-(a.salesCount||0))
                 .slice(0, parseInt(limit));
-            console.log('Served', sellers.length, 'bestsellers from bundled cache');
-            return res.json(sellers);
+            console.log('Serving', sellers.length, 'bestsellers from embedded data');
+            res.json(sellers);
         } catch (error) {
             console.error('getBestsellers error:', error && error.message ? error.message : error);
-            res.json([]);
+            // Last resort: return bestsellers from embedded data
+            const sellers = bundledMenu
+                .filter(i => i.available !== false && i.isBestseller)
+                .sort((a,b) => (b.salesCount||0)-(a.salesCount||0))
+                .slice(0, 6);
+            res.json(sellers);
         }
     }
     }
