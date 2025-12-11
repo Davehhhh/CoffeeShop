@@ -133,10 +133,10 @@ class ChatbotService {
         };
     }
 
-    async generateResponse(userMessage) {
+    async generateResponse(userMessage, menuItems = []) {
         const lowerMessage = userMessage.toLowerCase();
         
-        // Check for intent matches
+        // Check for intent matches in knowledge base
         for (const [intent, data] of Object.entries(this.knowledgeBase)) {
             for (const pattern of data.patterns) {
                 if (lowerMessage.includes(pattern)) {
@@ -145,8 +145,40 @@ class ChatbotService {
             }
         }
 
-        // If no pattern matched, provide a helpful default response (may call external LLM)
+        // If no pattern matched, try Gemini with menu context
+        return await this.getSmartResponse(userMessage, menuItems);
+    }
+
+    async getSmartResponse(userMessage, menuItems = []) {
+        // If Gemini API is available, use it with context
+        if (this.geminiApiKey && menuItems.length > 0) {
+            const context = this.buildMenuContext(menuItems);
+            const enhancedPrompt = `${userMessage}\n\nCurrent menu context:\n${context}`;
+            const geminiReply = await this.callGemini(enhancedPrompt);
+            if (geminiReply) return geminiReply;
+        } else if (this.geminiApiKey) {
+            const geminiReply = await this.callGemini(userMessage);
+            if (geminiReply) return geminiReply;
+        }
+
+        // Fallback to default response
         return await this.getDefaultResponse(userMessage);
+    }
+
+    buildMenuContext(menuItems) {
+        if (!menuItems || menuItems.length === 0) return '';
+        
+        const categories = {};
+        menuItems.forEach(item => {
+            if (!categories[item.category]) categories[item.category] = [];
+            categories[item.category].push(`${item.name} (₱${parseFloat(item.price).toFixed(2)}) - ${item.description}${item.isBestseller ? ' ⭐' : ''}`);
+        });
+
+        let context = 'Available items by category:\n';
+        Object.entries(categories).forEach(([cat, items]) => {
+            context += `${cat}: ${items.join(', ')}\n`;
+        });
+        return context;
     }
 
     selectRandomResponse(responses) {
@@ -177,13 +209,45 @@ class ChatbotService {
         if (!this.geminiApiKey) return null;
 
         try {
-            const url = `https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generate?key=${this.geminiApiKey}`;
+            // Use the latest Gemini API (v1/models/gemini-2.0-flash)
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.geminiApiKey}`;
+            
+            // Enhanced system prompt with cafe context and personality
+            const systemPrompt = `You are BrewHeaven Cafe's friendly and knowledgeable AI assistant. 
+Your role is to help customers with:
+- Menu recommendations based on their preferences
+- Information about our coffee drinks, pastries, and desserts
+- Ordering process and pricing
+- Customer service inquiries
+
+Key cafe info:
+- Name: BrewHeaven Cafe
+- Location: 123 Coffee Street, Downtown District, Cebu City
+- Specialty: Premium coffee drinks and fresh pastries
+- Popular items: Cappuccino, Latte, Mocha, Iced Coffee, Croissant, Chocolate Cake
+
+Guidelines:
+- Be concise but friendly (2-3 sentences max)
+- Use appropriate emojis to add warmth
+- Always suggest looking at the menu or checking with staff for details you're unsure about
+- Focus on customer satisfaction and experience
+- If they ask something unrelated to the cafe, gently redirect them back to our services`;
+
             const body = {
-                prompt: {
-                    text: `You are BrewHeaven Cafe assistant. Be concise and helpful. Customer asked: ${userMessage}`
-                },
-                temperature: 0.2,
-                maxOutputTokens: 256
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: `${systemPrompt}\n\nCustomer: ${userMessage}` }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 256,
+                    topP: 0.95,
+                    topK: 40
+                }
             };
 
             const res = await fetch(url, {
@@ -202,19 +266,14 @@ class ChatbotService {
 
             const data = await res.json();
 
-            // Preferred: look for `candidates[0].output` or `text`
+            // Extract text from Gemini 2.0 response format
             if (data && data.candidates && data.candidates.length > 0) {
-                const cand = data.candidates[0];
-                if (typeof cand === 'string') return cand;
-                if (cand.output) return cand.output;
+                const candidate = data.candidates[0];
+                if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+                    const text = candidate.content.parts.map(part => part.text || '').join('').trim();
+                    if (text) return text;
+                }
             }
-
-            if (data && data.output && Array.isArray(data.output)) {
-                const content = data.output.map(p => p.text || '').join('');
-                if (content) return content;
-            }
-
-            if (data && data.text) return data.text;
 
             return null;
         } catch (err) {
@@ -224,23 +283,8 @@ class ChatbotService {
     }
 
     async getContextualResponse(userMessage, menuItems = []) {
-        // Get basic response
-        let response = await this.generateResponse(userMessage);
-
-        // Add menu-related context if user asks about specific items
-        const lowerMessage = userMessage.toLowerCase();
-        
-        if ((lowerMessage.includes('cappuccino') || lowerMessage.includes('latte') || 
-             lowerMessage.includes('espresso') || lowerMessage.includes('coffee')) && menuItems.length > 0) {
-            
-            const coffeeItems = menuItems.filter(item => item.category === 'Coffee');
-            if (coffeeItems.length > 0) {
-                const itemNames = coffeeItems.map(item => `${item.name} (₱${parseFloat(item.price).toFixed(2)})`).join(', ');
-                response += ` We have: ${itemNames}`;
-            }
-        }
-
-        return response;
+        // Use the enhanced smart response that includes Gemini and menu context
+        return await this.getSmartResponse(userMessage, menuItems);
     }
 }
 
